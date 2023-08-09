@@ -1,6 +1,6 @@
 #include <Arduino.h>
 
-int lsa_pins[8]={A3, 2, A4, 3, A5, 4, A6, 5},lsa_vals[8]={-7, -3, -1, 0, 0, 1, 3, 7},right_mot[2]={6,8},left_mot[2]={9,10},prev_offset=0;
+int lsa_pins[8]={A3, 2, A4, 3, A5, 4, A6, 5},lsa_vals[8]={-15, -10, -5, -1, 1, 5, 10, 15},right_mot[2]={6,8},left_mot[2]={9,10},prev_offset=0,lrflag=0,lrcount=0;
 #define led 7
 #define button 11
 
@@ -12,7 +12,15 @@ float flag=0,offset=0,flag_line_over=0,flag_white=0;
       offset+=lsa_vals[i];
       flag++;
       prev_offset=offset;
-      flag_line_over=1;
+      if(i==0){
+        lrflag=-1;
+        lrcount=0;
+
+      }
+      if(i==3 || i==4){
+        lrcount++;
+      }
+      //flag_line_over=1;
     } 
     else{
       if(flag_line_over==1){
@@ -33,25 +41,30 @@ float flag=0,offset=0,flag_line_over=0,flag_white=0;
       offset+=lsa_vals[7];
       flag++;
       prev_offset=offset;
+      lrflag=1;
+      lrcount=0;
   } 
 
   if(flag!=0){
-    if(flag<3){
     return offset/flag;
-    }
-    else{
-      return offset*2;
-    }
   }
   else {
-    return prev_offset;
+    if(lrcount<60){
+    return lrflag*10;
+    }
+    else{
+      return prev_offset;
+    }
   }
 
 
 }
 int integral_prior=0,integral,derivative,offset_prior=0,pwm_offset;
 void move(float offset) {
-  float kp=7,kd=0,ki=0,set_speed=70;
+  float kp=7,kd=2.5,ki=4,set_speed=85;
+  if(offset==0){
+    set_speed=120;
+  }
   integral = integral_prior + offset * 0.010;
   derivative= (offset-offset_prior)/0.010;
   pwm_offset=kp*offset+ki*integral+kd*derivative;
@@ -91,5 +104,5 @@ void loop() {
   float t=get_offset(); 
   move(t); 
   Serial.println(t);
-  delay(10);
+  delay(5);
 }
